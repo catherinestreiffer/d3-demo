@@ -10,7 +10,7 @@ window.onload = function(){
       .attr("class", "container") //always assign a class (as the block name) for styling and future selection
       .style("background-color", "rgba(0,0,0,0.2)"); //only put a semicolon at the end of the block!
 
-      //Example 1.8 line 1...innerRect block
+      //innerRect block
   var innerRect = container.append("rect")
       .datum(400) //a single value is a DATUM
       .attr("width", function(d){ //rectangle width
@@ -24,27 +24,113 @@ window.onload = function(){
       .attr("y", 50) //position from top on the y (vertical) axis
       .style("fill", "#FFFFFF"); //fill color
 
-//Example 2.3 line 1
-var cityPop = [
-    {
+//array of cities and their populations
+  var cityPop = [
+      {
         city: 'Memphis',
         population: 653450
-    },
-    {
+      },
+      {
         city: 'New Orleans',
         population: 378715
-    },
-    {
+      },
+      {
         city: 'St Louis',
         population: 318416
-    },
-    {
-        city: 'Chicago',
-        population: 2719000
-    }
-];
+      },
+      {
+        city: 'Baton Rouge',
+        population: 229426
+      }
+  ];
 
-//Example 2.6 line 3
+  var x = d3.scale.linear() //create the scale
+      .range([100, 710]) //output min and max
+      .domain([0, 3]); //input min and max
+
+    //find the minimum value of the array
+  var minPop = d3.min(cityPop, function(d){
+      return d.population;
+  });
+
+  //find the maximum value of the array
+  var maxPop = d3.max(cityPop, function(d){
+      return d.population;
+  });
+
+  //scale for circles center y coordinate
+  var y = d3.scale.linear()
+      .range([450, 75]) //was 440, 95
+      .domain([0, 700000]); //was minPop, maxPop
+
+  //color scale generator
+  var color = d3.scale.linear()
+      .range([
+          "#FDBE85",
+          "#D94701"
+      ])
+      .domain([
+          minPop,
+          maxPop
+      ]);
+
+  //create y axis generator
+  var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("left")
+
+  //create axis g element and add axis
+  var axis = container.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(50, 0)") //moves axis to the right so it is lined up properly
+      .call(yAxis);
+
+  //.create a text element and add the title
+  var title = container.append("text")
+      .attr("class", "title")
+      .attr("text-anchor", "middle")
+      .attr("x", 450)
+      .attr("y", 30)
+      .text("City Populations");
+
+  //create circle labels
+  var labels = container.selectAll(".labels")
+      .data(cityPop)
+      .enter()
+      .append("text")
+      .attr("class", "labels")
+      .attr("text-anchor", "left")
+      .attr("y", function(d){
+          //vertical position centered on each circle
+          return y(d.population) + 5;
+      });
+
+  //first line of label
+  var nameLine = labels.append("tspan")
+      .attr("class", "nameLine")
+      .attr("x", function(d,i){
+          //horizontal position to the right of each circle
+          return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
+      })
+      .attr("dy", "-7.5") //vertical offset
+      .text(function(d){
+          return d.city;
+      });
+
+  //create format generator
+  var format = d3.format(",");
+
+  //second line of label
+  var popLine = labels.append("tspan")
+      .attr("class", "popLine")
+      .attr("x", function(d,i){
+          return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
+      })
+      .attr("dy", "15") //vertical offset
+      .text(function(d){
+          return "Pop. " + format(d.population); //use format generator to format numbers
+      });
+
 var circles = container.selectAll(".circles") //create an empty selection
     .data(cityPop) //here we feed in an array
     .enter() //one of the great mysteries of the universe
@@ -59,12 +145,14 @@ var circles = container.selectAll(".circles") //create an empty selection
         return Math.sqrt(area/Math.PI);
     })
     .attr("cx", function(d, i){
-        //use the index to place each circle horizontally
-        return 90 + (i * 180);
+    //use the scale generator with the index to place each circle horizontally
+        return x(i);
     })
     .attr("cy", function(d){
-        //subtract value from 450 to "grow" circles up from the bottom instead of down from the top of the SVG
-        return 450 - (d.population * 0.0005);
-    });
-
+        return y(d.population);
+    })
+    .style("fill", function(d, i){ //add a fill based on the color scale generator
+        return color(d.population);
+    })
+    .style("stroke", "#000"); //black circle stroke
 };
